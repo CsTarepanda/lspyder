@@ -19,3 +19,15 @@ def let(binds, proc, globals, locals):
 def lmd(dargs, proc, globals, locals):
     return eval((
         "lambda %s: lspyder.lspyder_eval(proc, globals=globals, locals=locals())" % ", ".join(dargs)), {"globals": globals, "lspyder": lspyder, "proc": proc})
+
+
+@special
+@rename("and")
+def _and(left, right, globals, locals):
+    return lspyder.lspyder_eval(left, globals, locals) and lspyder.lspyder_eval(right, globals, locals)
+
+
+@special
+@rename("or")
+def _or(left, right, globals, locals):
+    return lspyder.lspyder_eval(left, globals, locals) or lspyder.lspyder_eval(right, globals, locals)

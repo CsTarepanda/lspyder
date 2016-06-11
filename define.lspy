@@ -1,1 +1,3 @@
 (define display print)
+(define && and)
+(define || or)

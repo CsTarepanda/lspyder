@@ -128,3 +128,37 @@ def _dict(*args):
     list1 = args[::2]
     list2 = args[1::2]
     return dict(zip(list1, list2))
+
+
+@rename("!")
+def equals(value):
+    return not value
+
+@rename("==")
+def equals(left, right):
+    return left == right
+
+
+@rename("!=")
+def equals(left, right):
+    return left != right
+
+
+@rename(">=")
+def gt(left, right):
+    return left >= right
+
+
+@rename("<=")
+def gt(left, right):
+    return left <= right
+
+
+@rename(">")
+def gt(left, right):
+    return left > right
+
+
+@rename("<")
+def gt(left, right):
+    return left < right
