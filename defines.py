@@ -1,5 +1,4 @@
 defines = {}
-symbols = {}
 specials = {}
 
 defines.update(globals()["__builtins__"])
@@ -10,11 +9,10 @@ def define(fnc):
     return fnc
 
 
-def symbol(name):
+def rename(name):
     def deco(fnc):
-        symbols[name] = fnc
         fnc.__name__ = name
-        return fnc
+        return define(fnc)
     return deco
 
 

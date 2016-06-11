@@ -1,4 +1,4 @@
-from defines import special, symbol, register
+from defines import special, rename, register
 
 
 @special
@@ -7,7 +7,13 @@ def define(df, val):
 
 
 @special
-@symbol("\"")
+@rename("lambda")
+def lmd():
+    pass
+
+
+@special
+@rename("\"")
 def string(*args):
     return " ".join(map(str, args))
 

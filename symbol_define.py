@@ -1,7 +1,7 @@
-from defines import symbol
+from defines import rename
 
 
-@symbol("*")
+@rename("*")
 def multiply(*args):
     result = 1
     for i in args:
@@ -9,7 +9,7 @@ def multiply(*args):
     return result
 
 
-@symbol("/")
+@rename("/")
 def div(*args):
     result = args[0]
     for i in args[1:]:
@@ -17,12 +17,12 @@ def div(*args):
     return i
 
 
-@symbol("+")
+@rename("+")
 def plus(*args):
     return sum(args)
 
 
-@symbol("-")
+@rename("-")
 def minus(*args):
     result = 0
     for i in args:
@@ -30,7 +30,7 @@ def minus(*args):
     return result
 
 
-@symbol("%")
+@rename("%")
 def mod(*args):
     result = args[0]
     for i in args[1:]:
@@ -38,7 +38,7 @@ def mod(*args):
     return result
 
 
-@symbol("**")
+@rename("**")
 def power(*args):
     result = args[0]
     for i in args[1:]:
@@ -46,7 +46,7 @@ def power(*args):
     return result
 
 
-@symbol("|")
+@rename("|")
 def _or(*args):
     result = args[0]
     for i in args[1:]:
@@ -54,7 +54,7 @@ def _or(*args):
     return result
 
 
-@symbol("&")
+@rename("&")
 def _and(*args):
     result = args[0]
     for i in args[1:]:
@@ -62,7 +62,7 @@ def _and(*args):
     return result
 
 
-@symbol("^")
+@rename("^")
 def xor(*args):
     result = args[0]
     for i in args[1:]:
@@ -70,17 +70,17 @@ def xor(*args):
     return result
 
 
-@symbol("++")
+@rename("++")
 def inc(arg):
     return arg + 1
 
 
-@symbol("--")
+@rename("--")
 def dec(arg):
     return arg - 1
 
 
-@symbol("//")
+@rename("//")
 def intdiv(*args):
     result = args[0]
     for i in args[1:]:
@@ -88,7 +88,7 @@ def intdiv(*args):
     return result
 
 
-@symbol("<<")
+@rename("<<")
 def left_shift(*args):
     result = args[0]
     for i in args[1:]:
@@ -96,7 +96,7 @@ def left_shift(*args):
     return result
 
 
-@symbol(">>")
+@rename(">>")
 def right_shift(*args):
     result = args[0]
     for i in args[1:]:
@@ -104,26 +104,26 @@ def right_shift(*args):
     return result
 
 
-@symbol("~")
+@rename("~")
 def bitwise_negate(arg):
     return ~arg
 
 
-@symbol("[]")
+@rename("[]")
 def _list(*args):
     return list(args)
 
 
-@symbol("()")
+@rename("()")
 def _tuple(*args):
     return args
 
 
-@symbol("{}")
+@rename("{}")
 def _set(*args):
     return set(args)
 
-@symbol("{:}")
+@rename("{:}")
 def _dict(*args):
     list1 = args[::2]
     list2 = args[1::2]

@@ -2,10 +2,9 @@
 import lspyder_define
 import symbol_define
 import special_define
-from defines import defines, symbols, specials
+from defines import defines, specials
 defines.update(defines)
 defines.update(specials)
-defines.update(symbols)
 
 
 def parse(code):
