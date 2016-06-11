@@ -12,10 +12,3 @@ def define(df, val):
 def lmd(dargs, proc):
     return eval((
         "lambda %s: lspyder.lspyder_eval(proc, globals=lspyder.defines, locals=locals())" % ", ".join(dargs)), {"lspyder": lspyder, "proc": proc})
-
-
-@special
-@rename("\"")
-def string(*args):
-    return " ".join(map(str, args))
-
