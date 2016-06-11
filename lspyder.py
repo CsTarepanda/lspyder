@@ -71,25 +71,23 @@ def create_sat(parse_code):
     return result
 
 
-def scmexec(fnc, args):
+def lspyder_exec(fnc, args, globals, locals):
+    defs = locals if fnc in locals else globals if fnc in globals else None
+    if not defs: raise NameError(fnc)
     if fnc in specials:
-        return defines.get(fnc)(*map(defeval, args))
-    fnc_args = map(scmeval, args)
-    try:
-        return defines[fnc](*fnc_args)
-    except KeyError:
-        raise NameError(fnc)
+        return defs[fnc](*[defeval(x, globals, locals) for x in args])
+    return defs[fnc](*[lspyder_eval(x, globals, locals) for x in args])
 
 
-def scmeval(code):
+def lspyder_eval(code, globals, locals):
     if type(code) == list:
-        return scmexec(code[0], code[1:])
-    return pyeval(code, defines)
+        return lspyder_exec(code[0], code[1:], globals, locals)
+    return pyeval(code, globals, locals)
 
 
-def defeval(code):
+def defeval(code, globals, locals):
     try:
-        return scmeval(code)
+        return lspyder_eval(code, globals, locals)
     except:
         return code
 
@@ -97,8 +95,8 @@ def defeval(code):
 pyeval = eval
 
 
-def eval(code):
-    return scmeval(parse(code))
+def eval(code, globals=defines, locals={}):
+    return lspyder_eval(parse(code), globals, locals)
 
 
 eval(open("./define.lspy").read())
