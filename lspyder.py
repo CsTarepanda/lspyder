@@ -76,7 +76,7 @@ def lspyder_exec(fnc, args, globals, locals):
     defs = locals if fnc in locals else globals if fnc in globals else None
     if not defs: raise NameError(fnc)
     if fnc in specials:
-        return defs[fnc](*args)
+        return defs[fnc](*args, globals=globals, locals=locals)
     return defs[fnc](*[lspyder_eval(x, globals, locals) for x in args])
 
 
@@ -90,8 +90,8 @@ def lspyder_eval(code, globals, locals):
 pyeval = eval
 
 
-def eval(code, globals=defines, locals={}):
-    return lspyder_eval(parse(code), globals, locals)
+def eval(code, globals=defines, local=None):
+    return lspyder_eval(parse(code), globals, local if local else {})
 
 
 eval(open("./define.lspy").read())
