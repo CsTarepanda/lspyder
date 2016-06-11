@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import lspyder
 import lspyder_define
 import symbol_define
 import special_define
@@ -75,21 +76,15 @@ def lspyder_exec(fnc, args, globals, locals):
     defs = locals if fnc in locals else globals if fnc in globals else None
     if not defs: raise NameError(fnc)
     if fnc in specials:
-        return defs[fnc](*[defeval(x, globals, locals) for x in args])
+        return defs[fnc](*args)
     return defs[fnc](*[lspyder_eval(x, globals, locals) for x in args])
 
 
 def lspyder_eval(code, globals, locals):
     if type(code) == list:
         return lspyder_exec(code[0], code[1:], globals, locals)
-    return pyeval(code, globals, locals)
-
-
-def defeval(code, globals, locals):
-    try:
-        return lspyder_eval(code, globals, locals)
-    except:
-        return code
+    result = globals.get(code)
+    return result if result else pyeval(code, globals, locals)
 
 
 pyeval = eval
