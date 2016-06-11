@@ -1,5 +1,5 @@
 # lspyder
-練習
+練習<br>
 REPLの起動
 * python3 spy.py
 
