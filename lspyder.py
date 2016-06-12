@@ -4,37 +4,41 @@ import lspyder_define
 import symbol_define
 import special_define
 from defines import defines, specials
+import re
 defines.update(defines)
 defines.update(specials)
 
 
-def parse(code):
+def parse(code_lines):
     not_strs = [""]
     not_strs_target = 0
     strs = [""]
     strs_target = 0
     strflg = False
     escapeflg = False
-
-    for i in code:
-        if strflg:
-            if i == '"' and not escapeflg:
-                strs.append("")
-                strs_target += 1
-                strflg = False
-            elif i == '\\' and not escapeflg:
-                escapeflg = True
-                strs[strs_target] += i
+    for code in code_lines:
+        for i in code:
+            if i == "\n": continue
+            if strflg:
+                if i == '"' and not escapeflg:
+                    strs.append("")
+                    strs_target += 1
+                    strflg = False
+                elif i == '\\' and not escapeflg:
+                    escapeflg = True
+                    strs[strs_target] += i
+                else:
+                    escapeflg = False
+                    strs[strs_target] += i
             else:
-                escapeflg = False
-                strs[strs_target] += i
-        else:
-            if i == '"':
-                not_strs.append("")
-                not_strs_target += 1
-                strflg = True
-            else:
-                not_strs[not_strs_target] += i
+                if i == '"':
+                    not_strs.append("")
+                    not_strs_target += 1
+                    strflg = True
+                elif i == ";":
+                    break
+                else:
+                    not_strs[not_strs_target] += i
 
     fmt = lambda n: n\
             .replace("'(", "(quote ")\
@@ -103,8 +107,8 @@ def lspyder_eval(code, globals, locals):
 pyeval = eval
 
 
-def eval(code, globals=defines, local=None):
-    codes = parse(code)
+def eval(code, globals=defines, local=None, split=False):
+    codes = parse(code if split else code.split("\n"))
     for c in codes[:-1]:
         lspyder_eval(c, globals, local if local else {})
     return lspyder_eval(codes[-1], globals, local if local else {})
@@ -113,9 +117,7 @@ def eval(code, globals=defines, local=None):
 # eval(open("./define.lspy").read())
 # f = open("./define.lspy")
 def fileread(name):
-    for i in open(name):
-        if not i.startswith(";"):
-            eval(i)
+    eval(open(name).readlines(), split=True)
 
 
 fileread("./define.lspy")
@@ -136,10 +138,19 @@ if __name__ == "__main__":
         sys.exit()
     signal.signal(signal.SIGINT, ctr_c)
 
+    inp = ""
+    inp_symbol = ">> "
     while True:
         try:
-            result = eval(input(">> "))
+            inp += input(inp_symbol)
+            result = eval(inp)
             print("=>", result)
+            inp = ""
+            inp_symbol = ">> "
+        except SyntaxError:
+            if not inp.endswith(" "):
+                inp += " "
+            inp_symbol = ".. "
         except EOFError:
             print(" Good bye")
             sys.exit()
