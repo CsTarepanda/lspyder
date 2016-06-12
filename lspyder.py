@@ -73,6 +73,8 @@ def create_sat(parse_code):
 
 
 def get_value(var, globals, locals):
+    if type(var) == list:
+        return lspyder_eval(var, globals, locals)
     try:
         return locals[var] if var in locals else globals[var]
     except KeyError:
@@ -81,7 +83,7 @@ def get_value(var, globals, locals):
 
 def lspyder_exec(fnc, args, globals, locals):
     value = get_value(fnc, globals, locals)
-    if fnc in specials:
+    if type(fnc) == str and fnc in specials:
         return value(*args, globals=globals, locals=locals)
     return value(*[lspyder_eval(x, globals, locals) for x in args])
 
