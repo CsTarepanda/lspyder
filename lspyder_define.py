@@ -16,3 +16,8 @@ def quote(*args):
 @rename("if")
 def if_else(comp, true, false):
     return true if comp else false
+
+
+@define
+def cast(to, frm):
+    return to(frm)

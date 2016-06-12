@@ -102,7 +102,11 @@ def eval(code, globals=defines, local=None):
     return lspyder_eval(parse(code), globals, local if local else {})
 
 
-eval(open("./define.lspy").read())
+# eval(open("./define.lspy").read())
+# f = open("./define.lspy")
+for i in open("./define.lspy"):
+    if not i.startswith(";"):
+        eval(i)
 defines["pyeval"] = pyeval
 defines["eval"] = eval
 
