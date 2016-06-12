@@ -39,3 +39,36 @@ def _and(left, right, globals, locals):
 @rename("or")
 def _or(left, right, globals, locals):
     return lspyder.lspyder_eval(left, globals, locals) or lspyder.lspyder_eval(right, globals, locals)
+
+
+@special
+class quote:
+    def __init__(self, val, globals, locals):
+        self.val = val
+
+
+    @staticmethod
+    def tostr(ar):
+        if type(ar) == str:
+            return ar
+        return "(%s)" % str(" ".join(map(quote.tostr, ar)))
+
+
+    def __str__(self):
+        return quote.tostr(self.val)
+
+    
+    def get(self):
+        return self.val
+
+
+@special
+class quote_sub(quote):
+    def __init__(self, *val, globals, locals):
+        self.val = val
+
+
+@special
+@rename(".")
+def dot(cls, val, globals, locals):
+    return getattr(lspyder.lspyder_eval(cls, globals, locals), val)

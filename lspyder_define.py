@@ -8,11 +8,6 @@ def begin(*args):
 
 
 @define
-def quote(*args):
-    return args
-
-
-@define
 @rename("if")
 def if_else(comp, true, false):
     return true if comp else false

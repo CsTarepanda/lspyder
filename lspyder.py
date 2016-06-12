@@ -41,11 +41,11 @@ def parse(code_lines):
                     not_strs[not_strs_target] += i
 
     fmt = lambda n: n\
-            .replace("'(", "(quote ")\
+            .replace("'(", "(quote_sub ")\
             .replace("(", " ( ")\
             .replace(")", " ) ")\
-            .replace("(  )", "()")\
             .split()
+            # .replace("(  )", "()")\
     not_strs = list(map(fmt, not_strs))
 
     fmt = lambda n: '"%s"' % n
@@ -145,14 +145,20 @@ if __name__ == "__main__":
             inp += input(inp_symbol)
             result = eval(inp)
             print("=>", result)
-            inp = ""
-            inp_symbol = ">> "
         except SyntaxError:
-            if not inp.endswith(" "):
+            print(inp)
+            if inp.endswith(":q"):
+                inp = ""
+                inp_symbol = ">> "
+                continue
+            elif not inp.endswith(" "):
                 inp += " "
             inp_symbol = ".. "
+            continue
         except EOFError:
             print(" Good bye")
             sys.exit()
         except Exception as e:
             print("%s: %s" % (e.__class__.__name__, e))
+        inp = ""
+        inp_symbol = ">> "

@@ -114,7 +114,7 @@ def _list(*args):
     return list(args)
 
 
-@rename("()")
+@rename("<>")
 def _tuple(*args):
     return args
 
