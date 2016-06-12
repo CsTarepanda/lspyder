@@ -68,7 +68,12 @@ def create_sat(parse_code):
                 sub_result.append(code[target])
             target += 1
         raise SyntaxError("unexpected")
-    result = sub_create_sat(parse_code)[0]
+    result = []
+    tg = 0
+    while parse_code:
+        res, tg = sub_create_sat(parse_code)
+        parse_code = parse_code[tg + 1:]
+        result.append(res)
     return result
 
 
@@ -99,14 +104,21 @@ pyeval = eval
 
 
 def eval(code, globals=defines, local=None):
-    return lspyder_eval(parse(code), globals, local if local else {})
+    codes = parse(code)
+    for c in codes[:-1]:
+        lspyder_eval(c, globals, local if local else {})
+    return lspyder_eval(codes[-1], globals, local if local else {})
 
 
 # eval(open("./define.lspy").read())
 # f = open("./define.lspy")
-for i in open("./define.lspy"):
-    if not i.startswith(";"):
-        eval(i)
+def fileread(name):
+    for i in open(name):
+        if not i.startswith(";"):
+            eval(i)
+
+
+fileread("./define.lspy")
 defines["pyeval"] = pyeval
 defines["eval"] = eval
 
@@ -114,6 +126,10 @@ defines["eval"] = eval
 if __name__ == "__main__":
     import signal
     import sys
+
+    if len(sys.argv) == 2:
+        fileread(sys.argv[1])
+        sys.exit()
 
     def ctr_c(signum, frame):
         print(" Good bye")
