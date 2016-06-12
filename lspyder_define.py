@@ -1,9 +1,9 @@
+import lspyder
 from defines import define, rename
 
 
 @define
 def begin(*args):
-    print(args)
     return args[-1]
 
 

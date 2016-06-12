@@ -22,6 +22,14 @@ def lmd(dargs, proc, globals, locals):
 
 
 @special
+@rename("set!")
+def assignment(var, value, globals, locals):
+    defs = locals if var in locals else globals if var in globals else None
+    if not defs: raise NameError(var)
+    defs[var] = lspyder.lspyder_eval(value, globals, locals)
+
+
+@special
 @rename("and")
 def _and(left, right, globals, locals):
     return lspyder.lspyder_eval(left, globals, locals) and lspyder.lspyder_eval(right, globals, locals)
