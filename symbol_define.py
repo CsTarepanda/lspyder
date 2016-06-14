@@ -14,7 +14,7 @@ def div(*args):
     result = args[0]
     for i in args[1:]:
         result /= i
-    return i
+    return result
 
 
 @rename("+")

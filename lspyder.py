@@ -9,6 +9,24 @@ defines.update(defines)
 defines.update(specials)
 
 
+class Lspyder:
+    def __init__(self, *local_scopes, global_scope=None):
+        if global_scope: self.global_scope = dict(global_scope)
+        self.local_scope = {}
+        for i in local_scopes:
+            self.local_scope.update()
+
+    def get_value(self, var):
+        if type(var) == list:
+            return lspyder_eval(var, self.local_scope)
+        try:
+            return self.local_scope[var] if var in self.local_scope else self.global_scope[var]
+        except KeyError:
+            raise NameError(var)
+
+
+
+
 def parse(code_lines):
     not_strs = [""]
     not_strs_target = 0
@@ -41,11 +59,10 @@ def parse(code_lines):
                     not_strs[not_strs_target] += i
 
     fmt = lambda n: n\
-            .replace("'(", "(quote_sub ")\
+            .replace("'(", "(quote ")\
             .replace("(", " ( ")\
             .replace(")", " ) ")\
             .split()
-            # .replace("(  )", "()")\
     not_strs = list(map(fmt, not_strs))
 
     fmt = lambda n: '"%s"' % n
@@ -54,18 +71,18 @@ def parse(code_lines):
     for n, s in zip(not_strs[1:], strs):
         result.append(s)
         result += n
-    return create_sat(result)
+    return create_ast(result)
 
 
-def create_sat(parse_code):
-    def sub_create_sat(code, target=1):
+def create_ast(parse_code):
+    def sub_create_ast(code, target=1):
         sub_result = []
         code_length = len(code)
         while target < code_length:
             if code[target] == "(":
-                sub_sat, tmp = sub_create_sat(code[target:])
+                sub_ast, tmp = sub_create_ast(code[target:])
                 target += tmp
-                sub_result.append(sub_sat)
+                sub_result.append(sub_ast)
             elif code[target] == ")":
                 return sub_result, target
             else:
@@ -75,43 +92,49 @@ def create_sat(parse_code):
     result = []
     tg = 0
     while parse_code:
-        res, tg = sub_create_sat(parse_code)
+        res, tg = sub_create_ast(parse_code)
         parse_code = parse_code[tg + 1:]
         result.append(res)
+    print(result)
     return result
 
 
-def get_value(var, globals, locals):
+peval = eval
+pyeval = lambda x, local: peval(x, defines, local)
+
+
+def get_value(var, locals):
     if type(var) == list:
-        return lspyder_eval(var, globals, locals)
+        return lspyder_eval(var, locals)
     try:
-        return locals[var] if var in locals else globals[var]
+        return locals[var] if var in locals else defines[var]
     except KeyError:
         raise NameError(var)
 
 
-def lspyder_exec(fnc, args, globals, locals):
-    value = get_value(fnc, globals, locals)
+def lspyder_exec(fnc, args, locals):
+    value = get_value(fnc, locals)
     if type(fnc) == str and fnc in specials:
-        return value(*args, globals=globals, locals=locals)
-    return value(*[lspyder_eval(x, globals, locals) for x in args])
+        # return Special(locals, value)(*args)
+        return value(*args, locals=locals)
+    return value(*[lspyder_eval(x, locals) for x in args])
 
 
-def lspyder_eval(code, globals, locals):
+def lspyder_eval(code, locals):
     if type(code) == list:
-        return lspyder_exec(code[0], code[1:], globals, locals)
-    result = globals.get(code)
-    return result if result else pyeval(code, globals, locals)
+        return lspyder_exec(code[0], code[1:], dict(locals))
+    return locals[code] if code in locals\
+            else\
+            defines[code] if code in defines\
+            else\
+            pyeval(code, dict(locals))
 
 
-pyeval = eval
-
-
-def eval(code, globals=defines, local=None, split=False):
+def eval(code, local=None, split=False):
     codes = parse(code if split else code.split("\n"))
     for c in codes[:-1]:
-        lspyder_eval(c, globals, local if local else {})
-    return lspyder_eval(codes[-1], globals, local if local else {})
+        lspyder_eval(c, local if local else {})
+    return lspyder_eval(codes[-1], local if local else {})
 
 
 # eval(open("./define.lspy").read())
@@ -145,7 +168,8 @@ if __name__ == "__main__":
             inp += input(inp_symbol)
             result = eval(inp)
             print("=>", result)
-        except SyntaxError:
+        except SyntaxError as e:
+            print(e)
             print(inp)
             if inp.endswith(":q"):
                 inp = ""
