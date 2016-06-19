@@ -1,152 +1,135 @@
 #!/usr/bin/python3
-import lspyder
-import lspyder_define
-import symbol_define
-import special_define
-from defines import defines, specials
 import re
-defines.update(defines)
-defines.update(specials)
+import pyfunc
+
+pyfunc.update(globals())
 
 
-class Lspyder:
-    def __init__(self, *local_scopes, global_scope=None):
-        if global_scope: self.global_scope = dict(global_scope)
-        self.local_scope = {}
-        for i in local_scopes:
-            self.local_scope.update()
+def direct(*filenames):
+    for filename in filenames:
+        with open(filename + ("" if filename.endswith(".py") else ".py")) as f:
+            exec(f.read(), globals())
 
-    def get_value(self, var):
-        if type(var) == list:
-            return lspyder_eval(var, self.local_scope)
+
+direct("ast", "defines", "function_define", "symbol_define", "special_define")
+
+
+class AST:
+    def __init__(self, fnc_ast, *args_ast):
+        self.fnc_ast = fnc_ast
+        self.args_ast = args_ast
+
+    def eval(self, scope):
+        fnc = self.fnc_ast.eval(dict(scope))
+        if fnc.__name__ != None and fnc.__name__ in specials:
+            return fnc(scope, *self.args_ast)
+        return fnc(*[arg.eval(dict(scope)) for arg in self.args_ast])
+
+    def integrate(self):
+        return [self.fnc_ast] + list(self.args_ast)
+
+#     def tostr(self, num):
+#         return """%s=>{
+# %s%s
+# %s}""" % (
+#                 self.fnc_ast.tostr(num + 1) if isinstance(self.fnc_ast, AST) else str(self.fnc_ast),
+#                 "\t"*(num + 1),
+#                 ("\n%s" % ("\t"*(num))).join([s.tostr(num + 1) if isinstance(s, AST) else str(s) for s in self.args_ast]),
+#                 "\t"*(num),
+#                 )
+
+    def __str__(self):
+        return "(%s %s)" % (str(self.fnc_ast), " ".join(map(str, self.args_ast)))
+        # return self.tostr(0)
+        # return "%s=>{\n\t%s\n}" % (
+        #         self.tostr(0) if isinstance(self.fnc_ast, AST) else str(self.fnc_ast),
+        #         str("\n\t".join([s.tostr(1) if isinstance(s, AST) else str(s) for s in self.args_ast]))
+                # )
+
+
+
+start_matches = [r"[+-]?\d", "\""]
+all_matches = ["True", "False"]
+class Value:
+    def __init__(self, val):
+        if re.match(r'^(%s)' % "|".join(start_matches), val) or val in all_matches:
+            self.val = eval(val)
+            self.raw = True
+        else:
+            self.val = val
+            self.raw = False
+        
+    def eval(self, scope):
+        if self.raw:
+            return self.val
+        else:
+            return Lspyder.get_value(self.val, scope)
+
+    def name(self):
+        if self.raw: raise SyntaxError("can't assign to literal")
+        return self.val
+
+    def __str__(self):
+        if not self.raw: return "[ %s ]" % str(self.val)
+        return "< %s >" % str(self.val)
+
+
+class Empty:
+    def eval(self, scope):
+        return None
+
+    def name(self):
+        return None
+
+    def __str__(self):
+        return "< None >"
+# {{{
+
+class Function:
+    def __init__(self, fnc):
+        self.fnc = fnc
+
+    def eval(self, scope):
+        return Lspyder.get_value(self.fnc, scope)
+
+    def name(self):
+        return self.fnc
+
+    def __str__(self):
+        return "[ %s ]" % str(self.fnc)# }}}
+
+
+class Lspyder(dict):
+    def __init__(self, *local_scopes):
+        for scope in local_scopes:
+            self.update(scope)
+
+    @staticmethod
+    def get_value(var, scope):
         try:
-            return self.local_scope[var] if var in self.local_scope else self.global_scope[var]
+            return scope[var] if var in scope else globals()[var]
         except KeyError:
             raise NameError(var)
 
+    def file(self, filename):
+        with open(filename) as f:
+            self.compile(f.read())
+        return self
 
+    def exec(self, code=None):
+        pass
 
+    def eval(self, code=None):
+        codes = parse(code) if code else self.code
+        for c in codes: yield c.eval(dict(self))
 
-def parse(code_lines):
-    not_strs = [""]
-    not_strs_target = 0
-    strs = [""]
-    strs_target = 0
-    strflg = False
-    escapeflg = False
-    for code in code_lines:
-        for i in code:
-            if i == "\n": continue
-            if strflg:
-                if i == '"' and not escapeflg:
-                    strs.append("")
-                    strs_target += 1
-                    strflg = False
-                elif i == '\\' and not escapeflg:
-                    escapeflg = True
-                    strs[strs_target] += i
-                else:
-                    escapeflg = False
-                    strs[strs_target] += i
-            else:
-                if i == '"':
-                    not_strs.append("")
-                    not_strs_target += 1
-                    strflg = True
-                elif i == ";":
-                    break
-                else:
-                    not_strs[not_strs_target] += i
+    def compile(self, code):
+        self.code = parse(code)
+        return self
 
-    fmt = lambda n: n\
-            .replace("'(", "(quote ")\
-            .replace("(", " ( ")\
-            .replace(")", " ) ")\
-            .split()
-    not_strs = list(map(fmt, not_strs))
-
-    fmt = lambda n: '"%s"' % n
-    strs = list(map(fmt, strs))
-    result = not_strs[0]
-    for n, s in zip(not_strs[1:], strs):
-        result.append(s)
-        result += n
-    return create_ast(result)
-
-
-def create_ast(parse_code):
-    def sub_create_ast(code, target=1):
-        sub_result = []
-        code_length = len(code)
-        while target < code_length:
-            if code[target] == "(":
-                sub_ast, tmp = sub_create_ast(code[target:])
-                target += tmp
-                sub_result.append(sub_ast)
-            elif code[target] == ")":
-                return sub_result, target
-            else:
-                sub_result.append(code[target])
-            target += 1
-        raise SyntaxError("unexpected")
-    result = []
-    tg = 0
-    while parse_code:
-        res, tg = sub_create_ast(parse_code)
-        parse_code = parse_code[tg + 1:]
-        result.append(res)
-    print(result)
-    return result
-
-
-peval = eval
-pyeval = lambda x, local: peval(x, defines, local)
-
-
-def get_value(var, locals):
-    if type(var) == list:
-        return lspyder_eval(var, locals)
-    try:
-        return locals[var] if var in locals else defines[var]
-    except KeyError:
-        raise NameError(var)
-
-
-def lspyder_exec(fnc, args, locals):
-    value = get_value(fnc, locals)
-    if type(fnc) == str and fnc in specials:
-        # return Special(locals, value)(*args)
-        return value(*args, locals=locals)
-    return value(*[lspyder_eval(x, locals) for x in args])
-
-
-def lspyder_eval(code, locals):
-    if type(code) == list:
-        return lspyder_exec(code[0], code[1:], dict(locals))
-    return locals[code] if code in locals\
-            else\
-            defines[code] if code in defines\
-            else\
-            pyeval(code, dict(locals))
-
-
-def eval(code, local=None, split=False):
-    codes = parse(code if split else code.split("\n"))
-    for c in codes[:-1]:
-        lspyder_eval(c, local if local else {})
-    return lspyder_eval(codes[-1], local if local else {})
-
-
-# eval(open("./define.lspy").read())
-# f = open("./define.lspy")
-def fileread(name):
-    eval(open(name).readlines(), split=True)
-
-
-fileread("./define.lspy")
-defines["pyeval"] = pyeval
-defines["eval"] = eval
-
+lspyder = Lspyder({})
+lspyder.file("./define.lspy")
+for i in lspyder.eval(): pass
 
 if __name__ == "__main__":
     import signal
@@ -166,8 +149,8 @@ if __name__ == "__main__":
     while True:
         try:
             inp += input(inp_symbol)
-            result = eval(inp)
-            print("=>", result)
+            result = lspyder.eval(inp)
+            print("=>", list(result)[-1])
         except SyntaxError as e:
             print(e)
             print(inp)

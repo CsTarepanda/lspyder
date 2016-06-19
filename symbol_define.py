@@ -1,6 +1,3 @@
-from defines import rename
-
-
 @rename("*")
 def multiply(*args):
     result = 1

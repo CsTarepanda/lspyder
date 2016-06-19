@@ -1,37 +1,43 @@
-import lspyder
-from defines import special, rename, register
-
-
-@special
-def define(df, val, locals):
-    register(df, lspyder.lspyder_eval(val, locals))
-
+# from defines import special, rename
+#
 
 @special
-def let(binds, proc, locals):
-    for bind in binds:
-        locals[bind[0]] = lspyder.lspyder_eval(bind[1], locals)
-    return lspyder.lspyder_eval(proc, locals)
+def define(scope, name, val):
+    if name.raw: raise SyntaxError("can't assign to literal")
+    globals()[name.val] = val.eval(scope)
+
+
+def bind(scope, bind_ast):
+    scope[bind_ast.fnc_ast.name()] = bind_ast.args_ast[0].eval(scope)
+
+@special
+def let(scope, binds_ast, proc):
+    for b in binds_ast.integrate():
+        bind(scope, b)
+    return proc.eval(scope)
 
 
 @special
 @rename("lambda")
 class Lambda:
-    def __init__(self, args, proc, locals):
-        self.args = args if type(args) == list else [args]
-        self.proc = proc
-        self.scope = locals
+    def __init__(self, scope, args, proc=None):
+        if proc == None:
+            self.proc = args
+            self.args = []
+        elif isinstance(args, Empty):
+            self.proc = proc
+            self.args = []
+        else:
+            self.args =  [arg.name() for arg in args.integrate()] if isinstance(args, AST) else [args.name()]
+            self.proc = proc
+        self.scope = scope
 
     def __call__(self, *args):
         scope = dict(self.scope)
         scope.update(dict(zip(self.args, args)))
-        return lspyder.lspyder_eval(self.proc, scope)
-# def lmd(dargs, proc, locals):
-#     def fnc(*args):
-#         print(locals)
-#         locals.update(dict(zip(dargs, args)))
-#         return lspyder.lspyder_eval(proc, locals)
-#     return fnc
+        return self.proc.eval(scope)
+
+    __name__ = None
 
 
 @special
@@ -44,44 +50,35 @@ def assignment(var, value, locals):
 
 @special
 @rename("and")
-def _and(left, right, locals):
-    return lspyder.lspyder_eval(left, locals) and lspyder.lspyder_eval(right, locals)
+def _and(scope, left, right):
+    return left.eval(scope) and right.eval(scope)
 
 
 @special
 @rename("or")
-def _or(left, right, locals):
-    return lspyder.lspyder_eval(left, locals) or lspyder.lspyder_eval(right, locals)
+def _or(scope, left, right):
+    return left.eval(scope) or right.eval(scope)
 
 
 @special
 class quote:
-    def __init__(self, val, locals):
-        self.val = val
-
-
-    @staticmethod
-    def tostr(ar):
-        if type(ar) == str:
-            return ar
-        return "(%s)" % str(" ".join(map(quote.tostr, ar)))
+    def __init__(self, scope, ast):
+        self.scope = scope
+        self.ast = ast
 
 
     def __str__(self):
-        return quote.tostr(self.val)
+        return str(self.ast)
 
     
     def get(self):
-        return self.val
+        return self.ast
 
-
-@special
-class quote_sub(quote):
-    def __init__(self, val, locals):
-        self.val = val
+    def eval(self):
+        return self.ast.eval(self.scope)
 
 
 @special
 @rename(".")
-def dot(cls, val, locals):
-    return getattr(lspyder.lspyder_eval(cls, locals), val)
+def dot(scope, cls, name):
+    return getattr(cls.eval(scope), name.val)
